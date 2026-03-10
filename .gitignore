@@ -1,0 +1,38 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Migrations
+/alembic/versions/*
+!/alembic/versions/.gitkeep
+alembic.ini
+migrations/
+
+# Uploads
+uploads/
+media/
+
+# OS
+.DS_Store
+Thumbs.db
