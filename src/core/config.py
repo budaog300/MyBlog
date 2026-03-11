@@ -7,7 +7,8 @@ class SettingsDB(BaseSettings):
     DB_HOST: str
     DB_PORT: int
     DB_NAME: str
-    SECRET_KEY: str
+    JWT_SECRET_KEY: str
+    JWT_REFRESH_SECRET: str
     ALGORITHM: str
 
     model_config = SettingsConfigDict(env_file='.env')
@@ -18,7 +19,7 @@ class SettingsDB(BaseSettings):
     
     @property
     def get_auth_data(self) -> dict:
-        return {"secret_key": self.SECRET_KEY, "algorithm": self.ALGORITHM}
+        return {"access_secret_key": self.JWT_SECRET_KEY, "refresh_secret_key": self.JWT_REFRESH_SECRET, "algorithm": self.ALGORITHM}
     
 
 settings = SettingsDB()

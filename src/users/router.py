@@ -3,13 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from src.users.schemas import AddUserSchema, LoginUserSchema
 from src.users.crud import get_users, change_role_user, delete_user_by_id
 from src.users.auth import get_password_hash, create_user, authenticate
-from src.core.security import create_access_token, SessionDep, UserDep, AdminUserDep
+from src.core.security import generate_tokens, refresh_access_token, SessionDep, UserDep, AdminUserDep
 
 router = APIRouter(prefix="/api/v1/users", tags=["Пользователи"])
 
 
 @router.post("/register", summary="Регистрация пользователя")
-async def register_user(db: SessionDep, user_data: AddUserSchema, response: Response):
+async def register_user(user_data: AddUserSchema, response: Response, db: SessionDep):
     user_data_dict = user_data.model_dump()
     user_data_dict["password"] = get_password_hash(user_data_dict["password"])
     if not await create_user(db, user_data_dict):
@@ -18,25 +18,29 @@ async def register_user(db: SessionDep, user_data: AddUserSchema, response: Resp
     print(user, user.id)
     if not user:
         raise HTTPException(status_code=401, detail="Ошибка входа в систему")
-    access_token = create_access_token({"sub": str(user.id)})
-    response.set_cookie(key="access_token", value=access_token, httponly=True)
-    return {"message": "Вы успешно зарегистрированы!", "access_token": access_token, "refresh_token": None}
+    tokens = generate_tokens(response, {"sub": str(user.id)})
+    return {"message": "Вы успешно зарегистрированы!", "access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"]}
 
 
 @router.post("/login", summary="Вход в систему")
-async def login_user(db: SessionDep, user_data: LoginUserSchema, response: Response):
+async def login_user(user_data: LoginUserSchema, response: Response, db: SessionDep):
     user_data = user_data.model_dump()
     user = await authenticate(db, user_data)
     if not user:
-        raise HTTPException(status_code=401, detail="Неверная почта или пароль")
-    access_token = create_access_token({"sub": str(user.id)})
-    response.set_cookie(key="access_token", value=access_token, httponly=True)
-    return {"message": "Вы вошли в систему!", "access_token": access_token, "refresh_token": None}
+        raise HTTPException(status_code=401, detail="Неверная почта или пароль")    
+    tokens = generate_tokens(response, {"sub": str(user.id)})
+    return {"message": "Вы вошли в систему!", "access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"]}
 
+
+@router.post("/refresh", summary="Обновить refresh_token")
+async def refresh(request: Request, response: Response, db: SessionDep):
+    return await refresh_access_token(request, response, db)
+    
 
 @router.post("/logout", summary="Выход из системы")
 async def logout_user(response: Response):
     response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
     return {"message": "Вы вышли из системы!"}
 
 
