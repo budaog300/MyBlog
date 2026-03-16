@@ -12,14 +12,6 @@ from src.posts.schemas import AddTagSchema
 router = APIRouter(prefix="/api/v1/tag", tags=["Теги"])
 
 
-@router.post("/{post_id}/tags/{tag_id}", summary="Добавить тег посту", dependencies=[Depends(get_current_user)])
-async def add_tag_to_post(post_id: int, tag_id: int, user: UserDep, db: SessionDep):
-    result = await toggle_post_tag(post_id, tag_id, user, db)
-    if not result:
-        raise HTTPException(status_code=403, detail=f"Нельзя добавить тег посту {post_id}")
-    return {"message": "Тег успешно добавлен к посту"}
-
-
 @router.get("/{tag_id}", summary="Посты у тега")
 async def get_tag(tag_id: int, db: SessionDep):
     result = await get_tag_posts(tag_id, db)

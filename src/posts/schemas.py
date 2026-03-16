@@ -1,6 +1,6 @@
 import re
 from pydantic import BaseModel, Field, field_validator, computed_field
-from typing import Any
+from typing import Any, Optional
 from datetime import datetime
 
 from src.users.schemas import UserSchema
@@ -27,6 +27,16 @@ class AddTagSchema(BaseModel):
             raise ValueError([f"Неправильный формат тега {v}"])
         return v
     
+
+class AddCommentSchema(BaseModel):
+    content: str = Field(..., min_length=1, description="Оставить комментарий")
+    parent_id: int | None = Field(None, description="ID родительского комментария (для ответов)")
+    
+
+class PostFilterSchema(BaseModel): 
+    category: Optional[str] = None
+    user: Optional[str] = None
+
 
 class OutCategorySchema(BaseModel):
     name: str

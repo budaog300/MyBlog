@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, UniqueConstraint
 from src.core.database import Base, Default, int_pk, str_unique
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from src.users.models import User
@@ -20,6 +20,7 @@ class Post(Default):
     bookmarks: Mapped[list["Bookmark"]] = relationship("Bookmark", back_populates="post")
     likes: Mapped[list["Like"]] = relationship("Like", back_populates="post")
     user: Mapped["User"] = relationship("User", back_populates="posts")
+    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="post")  
 
 
 class Category(Default):
@@ -65,3 +66,17 @@ class Bookmark(Default):
     __table_args__ = (
         UniqueConstraint("post_id", "user_id"),
     )
+
+
+class Comment(Default):
+    __tablename__ = "comments"
+
+    content: Mapped[str] = mapped_column(nullable=False)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=False, index=True)
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    post: Mapped["Post"] = relationship("Post", back_populates="comments")
+    user: Mapped["User"] = relationship("User", back_populates="comments")
+    parent: Mapped["Comment"] = relationship("Comment", remote_side="Comment.id", back_populates="replies")
+    replies: Mapped[list["Comment"]] = relationship("Comment", back_populates="parent")

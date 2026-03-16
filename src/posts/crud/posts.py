@@ -1,4 +1,4 @@
-from sqlalchemy import select, insert, delete
+from sqlalchemy import select, insert, delete, or_, desc, asc
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,6 +27,42 @@ async def get_posts_by_user(user: User, pagination: PaginationParams, db: AsyncS
         return result.unique().scalars().all()
     except SQLAlchemyError as e:
         print(f"Ошибка получения постов для пользователя {user.id}: {e}")
+        raise e
+    
+
+async def get_all_posts(pagination: PaginationParams, db: AsyncSession, **filters):
+    query = (
+        select(Post)        
+        .options(
+            joinedload(Post.category),
+            joinedload(Post.user),
+            joinedload(Post.likes)
+        )
+        .limit(pagination.size)
+        .offset(pagination.offset)
+    )    
+    if filters.get("category"):      
+        query = query.join(Post.category).filter_by(name=filters["category"])
+    if filters.get("user"):        
+        query = query.join(Post.user).filter_by(username=filters["user"])
+    if filters.get("search"):
+        query = query.filter(
+            or_(
+                Post.title.ilike(f'%{filters["search"]}%'),
+                Post.content.ilike(f'%{filters["search"]}%')
+            )
+        )
+    sort_by = filters.get("sort_by", "created_at") 
+    order = filters.get("order", "desc")
+    if order == "desc":
+        query = query.order_by(desc(getattr(Post, sort_by)))
+    else:
+        query = query.order_by(asc(getattr(Post, sort_by)))
+    try:
+        result = await db.execute(query)
+        return result.unique().scalars().all()
+    except SQLAlchemyError as e:
+        print(f"Ошибка получения всех постов: {e}")
         raise e
     
 
